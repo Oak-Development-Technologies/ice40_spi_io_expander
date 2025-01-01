@@ -1,0 +1,23 @@
+set_io LED_R 41
+set_io LED_G 40
+set_io LED_B 39
+
+# PICO to ICE
+set_io clk 2
+set_io enable 3
+set_io data 4
+set_io data_out 6
+
+# RGB LED
+set_io RGB[2] 41
+set_io RGB[1] 40
+set_io RGB[0] 39
+
+# direct input
+set_io P13 13
+
+#spi
+set_io SPI_SS 16
+set_io SPI_SCK 15
+set_io SPI_MOSI 17
+set_io SPI_MISO 14
