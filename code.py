@@ -4,7 +4,8 @@
 # SPDX-License-Identifier: Unlicense
 
 """
-Example showing how to program an iCE40 FPGA with circuitpython!
+Example showing how to program an iCE40 FPGA with circuitpython and send some values over a SPI like
+Interface.
 """
 
 import time
@@ -28,15 +29,27 @@ print("done in: ", (endstamp - timestamp), "seconds")
 
 print("done")
 
-flow = [[0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1], # register first, LED output second
+# setting up the registers to determine the output of the pins is important
+# first we send the address which is the first 8 bits (first byte) of the message
+# the second byte of the message has the anatomy for the following
+# [0] - This byte is the PWM enable bit
+# [1-6] - Bits 1-6 are the PWM value of the output if PWM is enabled
+# [7] - is the output enable bit
+#
+# These bits are assigned for even address spaces starting from address 00h
+# 
+# Right now, for odd addresses starting at 01h, only the last bit sent is used to
+# toggle the value of the output if PWM is not enabled.
+
+flow = [[0,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,1], # register first, LED output second
         [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,1],
         [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,1],
-        [0,0,0,0,0,0,1,0, 1,1,1,1,1,1,1,1],
+        [0,0,0,0,0,0,1,0, 0,1,1,1,1,1,1,1],
         [0,0,0,0,0,0,1,1, 0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,1,1, 0,0,0,0,0,0,0,1],
-        [0,0,0,0,0,1,0,0, 1,1,1,1,1,1,1,1],
+        [0,0,0,0,0,1,0,0, 0,1,1,1,1,1,1,1],
         [0,0,0,0,0,1,0,1, 0,0,0,0,0,0,0,0],
         [0,0,0,0,0,1,0,1, 0,0,0,0,0,0,0,1]]
 
@@ -72,7 +85,7 @@ while True:
         #time.sleep(0.01)
         pico16.value = True
         #time.sleep(0.01)
-
+        
     pico17.value = True
     if (pico16.value):
         pico16.value = False
