@@ -80,10 +80,10 @@ while True:
         if (flow_cnt == 11):
             flow_cnt = 0
         print("count reset", flow_cnt)
-        pico16.value = False
+        #pico16.value = False
         pico17.value = False
-        #time.sleep(0.01)
-        pico16.value = True
+        #time.sleep(0.05)
+        #pico16.value = True
         #time.sleep(0.01)
         
     pico17.value = True

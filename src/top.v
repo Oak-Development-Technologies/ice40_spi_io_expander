@@ -11,8 +11,8 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out);
     reg [0:7] addr_in;
     reg [0:15] data_in;
 
-    reg [0:7] index;
-
+    reg [0:3] index;
+    reg data_set;
     wire [0:6] pwm_val_r;
     wire [0:6] pwm_val_g;
     wire [0:6] pwm_val_b;
@@ -37,6 +37,7 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out);
         index = 0;
         data_in = 0;
         addr_in = 0;
+        data_set = 0;
     end
 
     SB_HFOSC SB_HFOSC_inst(
@@ -52,16 +53,20 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out);
     always @(posedge clk) begin
 
         if (enable) begin
+            if (data_set) begin data_set <= 0; end
             data_in[index] <= data;
             index <= index + 1;
         end
-        else begin
-            addr_in <= data_in[0:7];
-            registers[data_in[0:7]] <= data_in[8:15];
-            index <= 0;
-        end
         //registers[7] <= P13;
         
+    end
+
+    always @(posedge internal_clk) begin 
+        if ((0 == enable) && (0 == data_set)) begin
+            registers[data_in[0:7]] <= data_in[8:15];
+            //index <= 0;
+            data_set <= 1;
+        end
     end
 
 endmodule
