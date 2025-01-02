@@ -31,7 +31,6 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out);
     assign pwm_val_r =| (pwm_enable_r) ? ((registers[0] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
     assign pwm_val_g =| (pwm_enable_g) ? ((registers[2] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
     assign pwm_val_b =| (pwm_enable_b) ? ((registers[4] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
-    //assign data_out = (registers[6] == 8'hFF) ? registers[7] & 8'h01 : 0;
 
     initial begin
         index = 0;
@@ -56,15 +55,12 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out);
             if (data_set) begin data_set <= 0; end
             data_in[index] <= data;
             index <= index + 1;
-        end
-        //registers[7] <= P13;
-        
+        end 
     end
 
     always @(posedge internal_clk) begin 
         if ((0 == enable) && (0 == data_set)) begin
             registers[data_in[0:7]] <= data_in[8:15];
-            //index <= 0;
             data_set <= 1;
         end
     end

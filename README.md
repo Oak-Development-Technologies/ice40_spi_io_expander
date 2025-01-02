@@ -19,6 +19,16 @@ Once OSS CAD Suite is available, type the following into your command line termi
 
 `make prog_flash` - this will program the SPI Flash on the IcyBlue FPGA, or the SPI Flash on other boards that use the FT232H to program the on board FLASH.
 
+### Using on RPGA Feather
+
+Copy over the `top.bin` file and also copy over either the `code.py` or `code2.py` to your RPGA Feather CIRCUITPY drive.
+
+If you use `code2.py` be sure to rename it to `code.py` so Circuitpython recognizes it and runs it.
+
+Make sure to install any necessary dependencies like
+
+Oak Development Technologies IcePython
+
 ### Coming Soon
 
 `make load_cirpy` - This will check for a circuitpython drive mounted (will start Mac only), copy over the bin file to the circuitpython drive as well as a code.py containing the code to program a standalone fpga.
