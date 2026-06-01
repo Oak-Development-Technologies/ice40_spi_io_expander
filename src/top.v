@@ -25,7 +25,7 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out, inout P13
     reg data_set;
     reg is_read;
     reg read_addr_set;
-    wire [0:6] pwm_val [0:5];
+    wire [5:0] pwm_val [0:4];
     // wire [0:6] pwm_val_g;
     // wire [0:6] pwm_val_b;
     // wire [0:6] pwm_val_13;
@@ -38,7 +38,6 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out, inout P13
     // reg pwm_out_13;
     reg [0:2] oe_i;
     reg bit_read;
-    wire [0:2] b;
 
     assign RGB[0] = ((registers[0] & 8'h01) == 8'h01) ? ((pwm_enable[0]) ?  ~pwm_out[0] : registers[1] & 8'h01) : 1; // blue
     assign RGB[1] = ((registers[2] & 8'h01) == 8'h01) ? ((pwm_enable[1]) ?  ~pwm_out[1] : registers[3] & 8'h01) : 1; // green
@@ -48,20 +47,21 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out, inout P13
     assign pwm_enable[1] = ((registers[2] & 8'h80) == 8'h80) ? 1 : 0;
     assign pwm_enable[2] = ((registers[4] & 8'h80) == 8'h80) ? 1 : 0;
     assign pwm_enable[3] = ((registers[6] & 8'h80) == 8'h80) ? 1 : 0;
-    assign pwm_enable[5] = ((registers[8] & 8'h80) == 8'h80) ? 1 : 0;
-    assign pwm_val[0] =| (pwm_enable[0]) ? ((registers[0] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
-    assign pwm_val[1] =| (pwm_enable[1]) ? ((registers[2] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
-    assign pwm_val[2] =| (pwm_enable[2]) ? ((registers[4] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
-    assign pwm_val[3] =| (pwm_enable[3]) ? ((registers[6] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
-    assign pwm_val[5] =| (pwm_enable[5]) ? ((registers[8] & 8'h7E) >> 1) : 0; // mask over the middle 6 bit, shift to the right.
+    assign pwm_enable[4] = ((registers[8] & 8'h80) == 8'h80) ? 1 : 0;
+    assign pwm_enable[5] = 0;
+    assign pwm_val[0] = (pwm_enable[0]) ? ((registers[0] & 8'h7E) >> 1) : 6'h00; // mask over the middle 6 bits, shift to the right.
+    assign pwm_val[1] = (pwm_enable[1]) ? ((registers[2] & 8'h7E) >> 1) : 6'h00; // mask over the middle 6 bits, shift to the right.
+    assign pwm_val[2] = (pwm_enable[2]) ? ((registers[4] & 8'h7E) >> 1) : 6'h00; // mask over the middle 6 bits, shift to the right.
+    assign pwm_val[3] = (pwm_enable[3]) ? ((registers[6] & 8'h7E) >> 1) : 6'h00; // mask over the middle 6 bits, shift to the right.
+    assign pwm_val[4] = (pwm_enable[4]) ? ((registers[8] & 8'h7E) >> 1) : 6'h00; // mask over the middle 6 bits, shift to the right.
 
-    assign P13 = oe[0] ? b[0] : 'bZ;
-    assign bidir[0] = oe[0] ? inp[0] : P13;
-    assign P20 = oe[1] ? b[1] : 'bZ;
-    assign bidir[1] = oe[1] ? inp[1] : P20;
+    assign P13 = oe[0] ? inp[0] : 1'bZ;
+    assign bidir[0] = P13;
+    assign P20 = oe[1] ? inp[1] : 1'bZ;
+    assign bidir[1] = P20;
 
     assign inp[0] = ((registers[6] & 8'h01) == 8'h01) ? ((pwm_enable[3]) ?  ~pwm_out[3] : registers[7] & 8'h01) : 1;
-    assign inp[1] = ((registers[8] & 8'h01) == 8'h01) ? ((pwm_enable[5]) ?  ~pwm_out[5] : registers[9] & 8'h01) : 1;
+    assign inp[1] = ((registers[8] & 8'h01) == 8'h01) ? ((pwm_enable[4]) ?  ~pwm_out[4] : registers[9] & 8'h01) : 1;
     assign oe[0] = oe_i[0];
     assign oe[1] = oe_i[1];
 
@@ -74,8 +74,11 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out, inout P13
         data_in = 0;
         addr_in = 0;
         data_set = 0;
+        is_read = 0;
         read_addr_set = 0;
-        for (i = 0; i < 256; i = i + 1) begin 
+        bit_read = 0;
+        oe_i = 0;
+        for (i = 0; i < 16; i = i + 1) begin 
             registers[i] = 8'h00;
         end
     end
@@ -90,10 +93,7 @@ module top(output [2:0] RGB, input clk, enable, data, output data_out, inout P13
     pwm pwm_init_g(.clk(internal_clk), .en(pwm_enable[1]),.value_input(pwm_val[1]),.out(pwm_out[1]));
     pwm pwm_init_r(.clk(internal_clk), .en(pwm_enable[2]),.value_input(pwm_val[2]),.out(pwm_out[2]));
     pwm pwm_init_13(.clk(internal_clk), .en(pwm_enable[3]),.value_input(pwm_val[3]),.out(pwm_out[3]));
-    pwm pwm_init_20(.clk(internal_clk), .en(pwm_enable[5]),.value_input(pwm_val[5]),.out(pwm_out[5]));
-
-    bidir bidir_init_13(.oe(oe[0]), .clk(internal_clk), .inp(inp[0]), .outp(b[0]), .bidir(bidir[0]));
-    bidir bidir_init_20(.oe(oe[1]), .clk(internal_clk), .inp(inp[1]), .outp(b[1]), .bidir(bidir[1]));
+    pwm pwm_init_20(.clk(internal_clk), .en(pwm_enable[4]),.value_input(pwm_val[4]),.out(pwm_out[4]));
 
     always @(posedge clk) begin
 

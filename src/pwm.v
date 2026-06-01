@@ -1,12 +1,12 @@
-module pwm(input clk, input en, input [0:6] value_input, output out);
-   reg [0:7] counter;
-   reg [0:6] value; //max 127
+module pwm(input clk, input en, input [5:0] value_input, output out);
+   reg [5:0] counter;
+   reg [5:0] value; // max 63
 
    assign out = (counter < value);
 
    initial begin
       counter = 0;
-      value = 127;
+      value = 0;
    end
 
    always @(posedge clk)

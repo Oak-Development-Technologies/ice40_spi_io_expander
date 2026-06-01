@@ -4,71 +4,88 @@
 # SPDX-License-Identifier: Unlicense
 
 """
-Example showing how to program an iCE40 FPGA with circuitpython!
+Program the iCE40 FPGA and write IO expander registers with CircuitPython's
+bit-banged SPI implementation.
 """
 
+import gc
 import time
-import board, busio, bitbangio
-import oakdevtech_icepython
-import gc, random
-from digitalio import DigitalInOut, Direction
-print("Mem Free: ",gc.mem_free(),"Mem Alloc", gc.mem_alloc())
-spi = busio.SPI(clock=board.F_SCK, MOSI=board.F_MOSI, MISO=board.F_MISO)
 
+import board
+import bitbangio
+import busio
+import oakdevtech_icepython
+from digitalio import DigitalInOut, Direction
+
+
+WRITE_COMMAND = 0xF0
+
+BLUE_CFG = 0x00
+BLUE_OUT = 0x01
+GREEN_CFG = 0x02
+GREEN_OUT = 0x03
+RED_CFG = 0x04
+RED_OUT = 0x05
+P13_CFG = 0x06
+P13_OUT = 0x07
+P20_CFG = 0x08
+P20_OUT = 0x09
+
+OUTPUT_ENABLE = 0x01
+BIDIR_OUTPUT_ENABLE = 0x02
+PWM_ENABLE = 0x80
+
+
+print("Mem Free: ", gc.mem_free(), "Mem Alloc", gc.mem_alloc())
+
+spi = busio.SPI(clock=board.F_SCK, MOSI=board.F_MOSI, MISO=board.F_MISO)
 iceprog = oakdevtech_icepython.Oakdevtech_icepython(
     spi, board.F_CSN, board.F_RST, "top.bin"
 )
 
 timestamp = time.monotonic()
-
 iceprog.program_fpga()
-
 endstamp = time.monotonic()
+
 print("done in: ", (endstamp - timestamp), "seconds")
 
-flow = [[0,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,1], # register first, LED output second
-        [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,1],
-        [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,1],
-        [0,0,0,0,0,0,1,0, 0,1,0,0,0,0,0,1],
-        [0,0,0,0,0,0,1,1, 0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,1,1, 0,0,0,0,0,0,0,1],
-        [0,0,0,0,0,1,0,0, 0,1,1,1,1,1,1,1],
-        [0,0,0,0,0,1,0,1, 0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,1,0,1, 0,0,0,0,0,0,0,1]]
 
-# clock corresponds to pin 2 on the FPGA and MOSI corresponds to pin 4 on the FPGA.
 spi2 = bitbangio.SPI(clock=board.F2, MOSI=board.F4)
+serial_enable = DigitalInOut(board.F3)
+serial_enable.direction = Direction.OUTPUT
+serial_enable.value = False
 
-# our chip select/enable pin
-pico17 = DigitalInOut(board.F3)
-pico17.direction = Direction.OUTPUT
+
+def write_register(address, value):
+    serial_enable.value = True
+    spi2.write(bytearray((WRITE_COMMAND, address & 0x0F, value & 0xFF)))
+    serial_enable.value = False
+    time.sleep(0.001)
+
+
+def pwm_config(level):
+    return PWM_ENABLE | ((level & 0x3F) << 1) | OUTPUT_ENABLE
+
+
+while not spi2.try_lock():
+    pass
+
+spi2.configure(baudrate=100000, polarity=0, phase=0, bits=8)
+
+write_register(BLUE_CFG, pwm_config(8))
+write_register(GREEN_CFG, pwm_config(24))
+write_register(RED_CFG, pwm_config(40))
+write_register(P13_CFG, BIDIR_OUTPUT_ENABLE | OUTPUT_ENABLE)
+write_register(P20_CFG, BIDIR_OUTPUT_ENABLE | OUTPUT_ENABLE)
+
+state = 0
 
 while True:
-    if spi2.try_lock():
-        pico17.value = True # Enable pin for enabling data serial data storage
-        time.sleep(0.01)
-        # write to register 00h the value 91h
-        # This enables the blue LED of the RGB LED in
-        # PWM mode, with a pwm value of 001000 with the enable bit set to 1
-        byte_flow = bytearray([0x00,0x91]) 
-        spi2.write(byte_flow)
-        pico17.value = False
-        time.sleep(0.01)
-        # if not in PWM mode, these two writes would toggle the
-        # blue LED on and off every 100msec
-        pico17.value = True
-        byte_flow = bytearray([0x01,0x00])
-        spi2.write(byte_flow)
-        pico17.value = False
-        time.sleep(0.1)
-        pico17.value = True
-        byte_flow = bytearray([0x01,0x01])
-        spi2.write(byte_flow)
-        pico17.value = False
-        spi2.unlock()
-        
+    write_register(BLUE_OUT, state)
+    write_register(GREEN_OUT, state ^ 0x01)
+    write_register(RED_OUT, state)
+    write_register(P13_OUT, state)
+    write_register(P20_OUT, state ^ 0x01)
 
-
-
+    state ^= 0x01
+    time.sleep(0.5)
