@@ -33,7 +33,6 @@ P20_OUT = 0x09
 
 OUTPUT_ENABLE = 0x01
 BIDIR_OUTPUT_ENABLE = 0x02
-PWM_ENABLE = 0x80
 
 
 print("Mem Free: ", gc.mem_free(), "Mem Alloc", gc.mem_alloc())
@@ -63,18 +62,14 @@ def write_register(address, value):
     time.sleep(0.001)
 
 
-def pwm_config(level):
-    return PWM_ENABLE | ((level & 0x3F) << 1) | OUTPUT_ENABLE
-
-
 while not spi2.try_lock():
     pass
 
 spi2.configure(baudrate=100000, polarity=0, phase=0, bits=8)
 
-write_register(BLUE_CFG, pwm_config(8))
-write_register(GREEN_CFG, pwm_config(24))
-write_register(RED_CFG, pwm_config(40))
+write_register(BLUE_CFG, OUTPUT_ENABLE)
+write_register(GREEN_CFG, OUTPUT_ENABLE)
+write_register(RED_CFG, OUTPUT_ENABLE)
 write_register(P13_CFG, BIDIR_OUTPUT_ENABLE | OUTPUT_ENABLE)
 write_register(P20_CFG, BIDIR_OUTPUT_ENABLE | OUTPUT_ENABLE)
 
